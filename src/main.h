@@ -25,6 +25,6 @@ inline struct Settings {
 std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<> disFloat(0.0, 1.0);
-std::uniform_int_distribution<> disInt(0, 1); // experience drop range
+std::uniform_int_distribution<> disInt(0, 2); // experience drop range
 
 DEF_LOGGER("CutCleanOres");

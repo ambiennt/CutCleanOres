@@ -21,26 +21,22 @@ __forceinline int32_t getFortuneDropCount(int32_t bonusLootLevel) {
 THook(ItemActor*, "?popResource@BlockLegacy@@QEBAPEAVItemActor@@AEAVBlockSource@@AEBVBlockPos@@AEBVItemInstance@@@Z",
     BlockLegacy &block, BlockSource &source, BlockPos const &pos, ItemInstance const &item) {
 
-    auto newItem = item;
     bool isSilkTouch = ((int64_t)_ReturnAddress() - (int64_t)GetModuleHandle(0) == 0x8DCD29); // hack
     if (!isSilkTouch) {
         switch (item.getId()) {
             case 14:
-                newItem = *VanillaItems::mGoldIngot;
-                break;
+                return original(block, source, pos, *VanillaItems::mGoldIngot);
 
             case 15:
-                newItem = *VanillaItems::mIronIngot;
-                break;
+                return original(block, source, pos, *VanillaItems::mIronIngot);
 
             case -271: // 255 + abs(-271) = 526
-                newItem = *VanillaItems::mNetheriteScrap;
-                break;
+                return original(block, source, pos, *VanillaItems::mNetheriteScrap);
 
             default: break;
         }
     } 
-    return original(block, source, pos, newItem);
+    return original(block, source, pos, item);
 }
 
 // use RedstoneOreBlock::getResourceCount for redstone
