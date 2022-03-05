@@ -15,16 +15,11 @@
 #include <random>
 
 inline struct Settings {
-    bool dropExperience = true;
+	bool dropExperience = true;
 
-    template <typename IO> static inline bool io(IO f, Settings &settings, YAML::Node &node) {
-	    return f(settings.dropExperience, node["dropExperience"]);
-    }
+	template <typename IO> static inline bool io(IO f, Settings &settings, YAML::Node &node) {
+		return f(settings.dropExperience, node["dropExperience"]);
+	}
 } settings;
-
-std::random_device rd;
-std::mt19937 gen(rd());
-std::uniform_real_distribution<> disFloat(0.0, 1.0);
-std::uniform_int_distribution<> disInt(0, 2); // experience drop range
 
 DEF_LOGGER("CutCleanOres");
