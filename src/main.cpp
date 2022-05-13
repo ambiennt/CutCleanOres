@@ -11,37 +11,60 @@ static std::mt19937 gen(rd());
 static std::uniform_real_distribution<float> generateFloat(0.f, 1.f);
 static std::uniform_int_distribution<int32_t> generateInt(0, 2); // experience drop range
 
+namespace CutCleanOres {
+
 // https://www.spigotmc.org/threads/fortune.52262/#post-582571
-inline int32_t getFortuneDropCount(int32_t bonusLootLevel) {
+int32_t getFortuneDropCount(int32_t bonusLootLevel) {
 
 	if (bonusLootLevel <= 0) return 1;
 
-	float myRand = generateFloat(gen);
+	float myRand  = generateFloat(gen);
 	int32_t bonus = (int32_t)(myRand * (bonusLootLevel + 2)) - 1;
-	if (bonus <= 0) bonus = 0;
-
-	return 1 + bonus;
+	return (int32_t)std::max(0, bonus + 1);
 }
 
-TInstanceHook(ItemActor*, "?popResource@BlockLegacy@@QEBAPEAVItemActor@@AEAVBlockSource@@AEBVBlockPos@@AEBVItemInstance@@@Z",
+int32_t getExperienceDropCount() { return generateInt(gen); }
+
+}
+
+/*TInstanceHook(ItemActor*, "?popResource@BlockLegacy@@QEBAPEAVItemActor@@AEAVBlockSource@@AEBVBlockPos@@AEBVItemInstance@@@Z",
 	BlockLegacy, void* region, void* pos, ItemInstance const &item) {
 
 	bool isSilkTouch = ((int64_t)_ReturnAddress() - (int64_t)GetModuleHandle(0) == 0x8DCD29); // hack
 	if (!isSilkTouch) {
-		switch (item.getId()) {
-			case 14:
+		switch (item.getIdAsEnum()) {
+			case ItemRuntimeID::GOLD_ORE:
 				return original(this, region, pos, *VanillaItems::mGoldIngot);
 
-			case 15:
+			case ItemRuntimeID::IRON_ORE:
 				return original(this, region, pos, *VanillaItems::mIronIngot);
 
-			case -271: // 255 + abs(-271) = 526
+			case ItemRuntimeID::ANCIENT_DEBRIS:
 				return original(this, region, pos, *VanillaItems::mNetheriteScrap);
 
 			default: break;
 		}
 	}
 	return original(this, region, pos, item);
+}*/
+
+TClasslessInstanceHook(ItemInstance, "?getResourceItem@OreBlock@@UEBA?AVItemInstance@@AEAVRandom@@AEBVBlock@@H@Z",
+	void* random, Block const& block, int32_t bonusLootLevel) {
+
+	switch (block.mLegacyBlock->getIdAsEnum()) {
+		case LegacyBlockID::GOLD_ORE:
+			return ItemInstance(*VanillaItems::mGoldIngot);
+
+		case LegacyBlockID::IRON_ORE:
+			return ItemInstance(*VanillaItems::mIronIngot);
+
+		case LegacyBlockID::ANCIENT_DEBRIS:
+			return ItemInstance(*VanillaItems::mNetheriteScrap);
+			
+		default: break;
+	}
+	
+	return original(this, random, block, bonusLootLevel);
 }
 
 // use RedstoneOreBlock::getResourceCount for redstone
@@ -50,13 +73,11 @@ TInstanceHook(int32_t, "?getResourceCount@OreBlock@@UEBAHAEAVRandom@@AEBVBlock@@
 
 	if (bonusLootLevel > 0) { // if mined with a fortune pickaxe
 
-		switch (this->mBlockID) {
-			case 14:  // gold ore
-			case 15:  // iron ore
-			case 526: // ancient debris
-				return allowRandomness ? getFortuneDropCount(bonusLootLevel) : 1;
-
-			default: break;
+		auto id = this->getIdAsEnum();
+		if ((id == LegacyBlockID::GOLD_ORE) ||
+			(id == LegacyBlockID::IRON_ORE) ||
+			(id == LegacyBlockID::ANCIENT_DEBRIS)) {
+			return allowRandomness ? CutCleanOres::getFortuneDropCount(bonusLootLevel) : 1;
 		}
 	}
 	return original(this, random, block, bonusLootLevel, allowRandomness);
@@ -66,34 +87,12 @@ TInstanceHook(int32_t, "?getExperienceDrop@OreBlock@@UEBAHAEAVRandom@@@Z", OreBl
 
 	if (settings.dropExperience) {
 
-		switch (this->mBlockID) {
-			case 14:
-			case 15:
-			case 526:
-				return generateInt(gen);
-
-			default: break;
+		auto id = this->getIdAsEnum();
+		if ((id == LegacyBlockID::GOLD_ORE) ||
+			(id == LegacyBlockID::IRON_ORE) ||
+			(id == LegacyBlockID::ANCIENT_DEBRIS)) {
+			return CutCleanOres::getExperienceDropCount();
 		}
 	}
 	return original(this, random);
 }
-
-
-/*THook(ItemInstance, "?getResourceItem@OreBlock@@UEBA?AVItemInstance@@AEAVRandom@@AEBVBlock@@H@Z",
-	OreBlock* self, ItemInstance *instance, class Random &random, Block const &block, int bonusLootLevel) {
-
-	uint16_t blockId = block.LegacyBlock.mBlockID;
-	std::cout << "blockId: " << blockId << std::endl;
-
-	switch (blockId) {
-		case 15: {
-			std::cout << "mined iron ore\n";
-			ItemInstance newItem(*VanillaItems::mIronIngot);
-			instance = &newItem;
-			return *instance;
-		}
-
-		default: break;
-	}
-	return original(self, instance, random, block, bonusLootLevel);
-}*/

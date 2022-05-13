@@ -22,4 +22,11 @@ inline struct Settings {
 	}
 } settings;
 
+namespace CutCleanOres {
+
+int32_t getFortuneDropCount(int32_t bonusLootLevel);
+int32_t getExperienceDropCount();
+
+}
+
 DEF_LOGGER("CutCleanOres");
